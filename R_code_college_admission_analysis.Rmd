@@ -1,0 +1,206 @@
+---
+title: 'MA717: Applied Regression and Experimental Data Analysis'
+author: "Sandeep Kumar Raghupathi"
+date: "29/11/2023 "
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+
+\textbf{Task 1: Data reading and simple exploration (25$\%$)}
+
+1.1. Read "College.csv" file into R with following command and use dim() and head() to check if you read the data correct. You should report the number of observations and the number of variables. **(5 $\%$)**
+
+```{r, eval=TRUE}
+mydata<-read.csv("College.csv", header=T, stringsAsFactors=TRUE)
+dim(mydata)
+head(mydata)
+
+
+
+```
+From R output
+The number of observations = 775
+The number of variables = 17
+
+
+1.2. Use your registration number as random seed, generate a random subset of College data with sample size 700, name this new data as mynewdata. Use summary() to output the summarized information about mynewdata. Please report the number of private and public university and the number of Elite university and non-Elite university in this new data. **(12 $\%$)** 
+
+```{r, eval=TRUE}
+
+mynewdata<- mydata[sample(nrow(mydata),700,replace=FALSE,set.seed(2310514)),]
+summary(mynewdata)
+num_private <- sum(mynewdata$Private == "Yes")
+cat("num_private",num_private,"\n")
+num_public <- sum(mynewdata$Private == "No")
+cat("num_public",num_public,"\n")
+num_elite <- sum(mynewdata$Elite == "Yes")
+cat("num_elite",num_elite,"\n")
+num_non_elite <- sum(mynewdata$Elite == "No")
+cat("num_non_elite",num_non_elite,"\n")
+
+
+
+
+
+```
+From the R output
+The number of private university is 513
+The number of public university is 187
+The number of Elite university is 70
+The number of non-Elite university is 630
+
+
+1.3. Use mynewdata, plot histogram plots of four variables "Outstate", "Room.Board", "Books" and "Personal". Give each plot a suitable title and label for x axis and y axis. **(8$\%$)**
+
+```{r, eval=TRUE}
+hist(mynewdata$Outstate,main = "Outstate cost", xlab = "Outstate", ylab = "Frequency")
+hist(mynewdata$Room.Board,main = "Room.Board cost ", xlab = "Room.Board", ylab = "Frequency")
+hist(mynewdata$Books,main = "Books cost", xlab = "Books", ylab = "Frequency")
+hist(mynewdata$Personal,main = "Personal Expense", xlab = "Personal", ylab = "Frequency")
+
+
+```
+
+
+
+
+\textbf{Task 2: Linear regression (45$\%$)}
+
+2.1. Use mynewdata, do a linear regression fitting when outcome is "Grad.Rate" and predictors are "Private" and "Elite". Show the R output and report what you have learned from this output (you need to discuss significance, adjusted R-squared and p-value of F-statistics). **(6$\%$)**. 
+
+```{r, eval=TRUE}
+lm_model<-lm(Grad.Rate ~  Private + Elite, mynewdata)
+summary(lm_model)
+
+
+```
+from the linear regression fitting by taking outcome = "Grade.rate" for predictors 'private' and 'elite' we can see that both 'private' and 'elite' are significant,adjusted R-squared is 0.2041,p-value = < 2.2e-16 and F-statistics = 90.64
+
+2.2. Use the linear regression fitting result in 2.1, calculate the confidence intervals for the coefficients. Also give the prediction interval of "Grad.Rate" for a new data with Private="Yes" and Elite="No". **(4$\%$)**
+
+```{r, eval=TRUE}
+cf_intervals<-confint(lm_model)
+cat(" confidence intervals for the coefficients\n")
+print(cf_intervals)
+new_data <- data.frame(Private = "Yes", Elite = "No")
+new_data_pred <- predict(lm_model, newdata = new_data, interval = "prediction", level = 0.95)
+print(new_data_pred)
+
+
+
+```
+
+2.3 Use mynewdata, do a multiple linear regression fitting when outcome is "Grad.Rate", all other variables as predictors. Show the R output and report what you have learned from this output (you need to discuss significance, adjusted R-squared and p-value of F-statistics). Is linear regression model in 2.3 better than linear regression in 2.1? Use ANOVA to justify your conclusion. **(14\%)** 
+
+```{r, eval=TRUE}
+mult_model<- lm(Grad.Rate ~. ,mynewdata)
+summary(mult_model)
+anova_result<- anova(lm_model,mult_model)
+cat(" Anova comparison \n")
+print(anova_result)
+
+
+
+
+
+```
+multiple linear regression
+significance: majority variable are significance except 5 variables that is Enroll, F.undergrade, Personal, Terminal and S.F.Ratio
+adjusted R-squared For Multiple linear is 0.4271 and p-value is < 2.2e-16
+F-statistics is 33.57
+By using Anova
+we can see that multiple linear model is more significant that linear model.
+
+
+2.4. Use the diagnostic plots to look at the fitting of multiple linear regression in 2.3. Please comment what you have seen from those plots. **(7\%)** 
+
+```{r, eval=TRUE}
+par(mfrow=c(2,2))
+plot(mult_model)
+
+
+
+
+
+```
+residuals vs fitted = from the plot we can see that The line is fitted in 0 and the data points are closer to fitted line.
+
+Normal Q-Q = from the plot we can see that The points are slightly away from the from the fitted line.
+
+Scale-Location = from the plot we can see that majority of data points are scattered from the Fitted line and the fitted line is also not Aligned to 0.
+
+Residuals vs Leverage = from the plot we can see that the line is Aligned to 0 but the data points are scattered.
+
+
+
+2.5. Use mynewdata, do a variable selection to choose the best model. You should use plots to justify how do you choose your best model. Use the selected predictors of your best model with outcome "Grad.Rate", do a linear regression fitting and plot the diagnostic plots for this fitting. You can use either exhaustive, or forward, or backward selection method. **(14\%)**
+
+```{r, eval=TRUE}
+library(leaps)
+data_subsett<-regsubsets(Grad.Rate~.,data=mynewdata,nvmax=16,method='forward')
+
+data_subsett_summary<-summary(data_subsett)
+
+par(mfrow=c(2,2))
+
+plot(data_subsett_summary$rss,xlab='variable number', ylab='RSS',type='l')
+
+plot(data_subsett_summary$adjr2,xlab='variable number', ylab='Adjusted R-square',type='l')
+
+plot(data_subsett_summary$cp,xlab='variable number', ylab='Cp',type='l')
+
+plot(data_subsett_summary$bic,xlab='variable number', ylab='BIC',type='l')
+
+which.max(data_subsett_summary$adjr2)
+which.min(data_subsett_summary$cp)
+which.min(data_subsett_summary$bic)
+
+coef(data_subsett,7)
+
+Lr_fit_select<-lm(Grad.Rate~Apps+P.Undergrad+Outstate+Room.Board+perc.alumni+Expend+Elite,data=mynewdata)
+
+summary(Lr_fit_select)
+
+plot(Lr_fit_select)
+
+```
+i have used forward selection method to choose the best variable selection to choose the best model.
+
+
+\textbf{Task 3: Open question (30$\%$)}
+
+Use mynewdata, discuss and perform any step(s) that you think that can improve the fitting in Task 2. You need to illustrate your work by using the R codes, output and discussion.  
+
+```{r, eval=TRUE}
+mynewdata$Grad.Rate<-sqrt(mynewdata$Grad.Rate)
+
+mynewdata$Apps<-log(mynewdata$Apps)
+
+mynewdata$P.Undergrad<-log(mynewdata$P.Undergrad)
+
+mynewdata$Outstate<-log(mynewdata$Outstate)
+
+mynewdata$Room.Board<-log(mynewdata$Room.Board)
+
+mynewdata$perc.alumni <-scale(mynewdata$perc.alumni)
+
+mynewdata$Expend <-log(mynewdata$Expend)
+
+Lr_fitt_improve<-lm(Grad.Rate~Apps+P.Undergrad+Outstate+Room.Board+perc.alumni+Expend+Elite,data=mynewdata)
+
+summary(Lr_fitt_improve)
+plot(Lr_fitt_improve)
+
+
+```
+Observation: 
+I attempted to enhance the fitting of my new dataset by applying logarithmic transformations to variables such as Apps, P.Undergrad, Outstate, Room.Board, perc.alumni, Expend, and Elite.
+
+Result:
+By performing the Transformation the new improved model has significantly less Residual Standard error that is(0.8761)
+
+
